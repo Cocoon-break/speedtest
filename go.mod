@@ -1,4 +1,4 @@
-module speedtest
+module github.com/Cocoon-break/speedtest
 
 go 1.17
 
