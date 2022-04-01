@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"k8s.io/klog/v2"
 )
 
 //command: speedtest -f json,output struct
@@ -52,7 +50,7 @@ type SpeedtestCliResult struct {
 }
 
 // you must install speedtest cli
-func ByOfficalBinary(interfaceOps []string) (BatchReport, error) {
+func BySpeedtestCli(interfaceOps []string, cmdTimoutSecond int) (BatchReport, error) {
 	var batchReport BatchReport
 	if len(interfaceOps) == 0 {
 		return batchReport, errors.New("interfaceOps less 1")
@@ -60,20 +58,17 @@ func ByOfficalBinary(interfaceOps []string) (BatchReport, error) {
 	var failedNet []string
 	var reports []*SpeedReport
 	for _, interfaceOp := range interfaceOps {
-		_, stdout, err := ExecCmd("speedtest", 60, "--accept-license", "-I", interfaceOp, "-f", "json")
+		_, stdout, err := ExecCmd("speedtest", cmdTimoutSecond, "--accept-license", "-I", interfaceOp, "-f", "json")
 		if err != nil {
 			failedNet = append(failedNet, interfaceOp)
-			klog.Errorf("speedtest --accept-license -I %s -f json err: %s", interfaceOp, err)
 			continue
 		}
 		var result SpeedtestCliResult
 		err = json.Unmarshal([]byte(stdout), &result)
 		if err != nil {
 			failedNet = append(failedNet, interfaceOp)
-			klog.Errorf("speedtest Unmarshal stdout failed: %s", err.Error())
 			continue
 		}
-		klog.Infof("speedtest --accept-license -I %s -f json success: %+v", interfaceOp, result)
 		reports = append(reports, transformToReport(result, interfaceOp))
 	}
 	batchReport.FailedNet = failedNet
